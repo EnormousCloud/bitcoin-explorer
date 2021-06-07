@@ -16,13 +16,34 @@ create index idx_chain_hash on longest_chain (blockhash);
 -- all records in this table passed consensus. and the table should be never rewritten
 drop table if exists final_blocks;
 create table final_blocks (
-    blockhash   bytea,  -- block hash
-    blockheight int,    -- block height
-    tm          timestamp without time zone, -- time of this block (still height is the dominant)
-    sent_btc    bigint, -- total amount of BTC transferred in this block
-    fee_btc     bigint, -- fee for this block
-    size        int,    -- block size in bytes
-    txcount     int,    -- amount of transactions in this block
+    blockhash      bytea,  -- block hash
+    blockheight    int,    -- block height
+    tm             timestamptz, -- time of this block (still height is the dominant)
+    avgfee         integer,
+    avgfeerate     integer,
+    avgtxsize      bigint,
+    height         integer,
+    ins            integer,
+    maxfee         integer,
+    maxfeerate     integer,
+    maxtxsize      integer,
+    medianfee      integer,
+    mediantxsize   integer,
+    minfee         integer,
+    minfeerate     integer,
+    mintxsize      integer,
+    outs           integer,
+    subsidy        integer,
+    swtotal_size   integer,
+    swtotal_weight bigint,
+    swtxs          integer,
+    total_out      bigint,
+    total_size     bigint,
+    total_weight   bigint,
+    totalfee       bigint,
+    txs            integer,
+    utxo_increase  integer,
+    utxo_size_inc  integer,
     primary key (blockhash)
 );
 
@@ -36,12 +57,32 @@ drop table if exists temp_blocks;
 create unlogged table temp_blocks (
     blockhash   bytea,  -- block hash
     blockheight int,    -- block height
-    tm          timestamp without time zone, -- time of this block (still height is the dominant)
-    sent_btc    bigint, -- total amount of BTC transferred in this block
-    fee_btc     bigint, -- fee for this block
-    size        int,    -- block size in bytes
-    txcount     int,    -- amount of transactions in this block
-    title       character varying(100), -- human text that describes what is inside the block
+    tm          timestamptz, -- time of this block (still height is the dominant)
+    avgfee         integer,
+    avgfeerate     integer,
+    avgtxsize      bigint,
+    height         integer,
+    ins            integer,
+    maxfee         integer,
+    maxfeerate     integer,
+    maxtxsize      integer,
+    medianfee      integer,
+    mediantxsize   integer,
+    minfee         integer,
+    minfeerate     integer,
+    mintxsize      integer,
+    outs           integer,
+    subsidy        integer,
+    swtotal_size   integer,
+    swtotal_weight bigint,
+    swtxs          integer,
+    total_out      bigint,
+    total_size     bigint,
+    total_weight   bigint,
+    totalfee       bigint,
+    txs            integer,
+    utxo_increase  integer,
+    utxo_size_inc  integer,
     primary key (blockhash)
 );
 
