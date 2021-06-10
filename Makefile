@@ -1,3 +1,5 @@
+.PHONY: indexer
+
 db-start:
     # start postgres instance (for local testing only)
 	docker run -d \
@@ -18,6 +20,4 @@ db-shell:
 	docker exec -it postgres psql -U postgres -d btcexplorer
 
 indexer:
-	cd indexer
-	cargo run --release
-	cd -
+	cd indexer && RUST_BACKTRACE=1 cargo run && cd -

@@ -5,6 +5,7 @@ use ureq::{Agent, AgentBuilder};
 pub trait BlockchainClient {
     fn get_chain_info(&self) -> anyhow::Result<ChainInfo>;
     fn get_block(&self, hash: &str) -> anyhow::Result<BlockInfoCombined>;
+    fn get_block_hash(&self, height: u32) -> anyhow::Result<String>;
 }
 
 struct Client {
@@ -147,6 +148,12 @@ struct BlockStatsResponse {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+struct StringResultResponse {
+    result: String
+}
+
+
+#[derive(Clone, Debug, Deserialize)]
 struct BlockInfoResponse {
     result: BlockInfo,
 }
@@ -169,6 +176,26 @@ impl BlockchainClient for Client {
             .send_string("{\"jsonrpc\":\"1.0\",\"id\":\"i0\",\"method\":\"getblockchaininfo\",\"params\":[]}")?
             .into_json()?;
         println!("{:?}", result);
+        Ok(result.result)
+    }
+
+    fn get_block_hash(&self, height: u32) -> anyhow::Result<String> {
+        let agent: Agent = AgentBuilder::new()
+            .timeout_read(Duration::from_secs(5))
+            .build();
+        let auth_token = format!("{}:{}", self.username.as_str(), self.password.as_str());
+        let auth_hdr = format!("Basic {}", base64::encode(auth_token));
+        let payload = format!(
+            "{{\"jsonrpc\":\"1.0\",\"id\":\"h{}\",\"method\":\"getblockhash\",\"params\":[{}]}}",
+            height, height,
+        );
+        println!("{}", payload);
+        let result: StringResultResponse = agent
+            .post(self.address.as_str())
+            .set("Authorization", auth_hdr.as_str())
+            .set("Content-Type", "application/json")
+            .send_string(payload.as_str())?
+            .into_json()?;
         Ok(result.result)
     }
 

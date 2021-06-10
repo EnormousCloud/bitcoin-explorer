@@ -4,6 +4,15 @@ use sqlx::pool::PoolConnection;
 use sqlx::Acquire;
 use sqlx::Postgres;
 
+pub async fn max_final_height(
+    conn: &mut PoolConnection<Postgres>,
+) -> Result<i32, anyhow::Error> {
+    let row: (i32,) = sqlx::query_as( "SELECT COALESCE(MAX(blockheight),0) FROM final_blocks")
+    .fetch_one(conn)
+    .await?;
+    Ok(row.0)
+}
+
 pub async fn persist(
     conn: &mut PoolConnection<Postgres>,
     block: &btc::BlockInfoCombined,
@@ -71,7 +80,7 @@ pub async fn persist(
     sqlx::query(
         "INSERT INTO final_blocks ( \
                 blockheight,blockhash,tm,avgfee,avgfeerate,
-                avgtxsize,height,ins,maxfee,maxfeerate,
+                avgtxsize,ins,maxfee,maxfeerate,
                 maxtxsize,medianfee,mediantxsize,minfee,minfeerate,
                 mintxsize,outs,subsidy,swtotal_size,swtotal_weight,
                 swtxs,total_out,total_size,total_weight,totalfee,
@@ -80,7 +89,7 @@ pub async fn persist(
             VALUES ( \
                 $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, \
                 $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, \
-                $21, $22, $23, $24, $25, $26, $27, $28
+                $21, $22, $23, $24, $25, $26, $27
             ) \
             ON CONFLICT (blockhash)  \
             DO NOTHING",
@@ -91,7 +100,6 @@ pub async fn persist(
     .bind(block.stats.avgfee)
     .bind(block.stats.avgfeerate)
     .bind(block.stats.avgtxsize as i64)
-    .bind(block.stats.height)
     .bind(block.stats.ins)
     .bind(block.stats.maxfee)
     .bind(block.stats.maxfeerate)
