@@ -29,6 +29,29 @@ pub async fn persist(
     .await?;
 
     let dt = DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(block.info.time, 0), Utc);
+    let mut txindex = 0;
+    for tptr in block.info.tx.iter() {
+        let t = tptr.clone();
+        let txb = hex::decode(t.hash)?;
+        let total: f32 = t.vout.iter().map(|x| x.value).sum();
+        sqlx::query(
+            "INSERT INTO final_tx ( \
+                txhash, txindex, blockhash, blockheight, sent_btc, fee_btc
+            ) VALUES ($1, $2, $3, $4, $5, $6) 
+            ON CONFLICT (txhash) DO NOTHING")
+        .bind(txb.clone())
+        .bind(txindex)
+        .bind(hashb.clone())
+        .bind(height)
+        .bind(total)
+        .bind(0_f64)
+        .execute(&mut tx)
+        .await?;
+
+        // todo: insert record as accounts
+        txindex += 1
+    }
+
     // save block
     sqlx::query(
         "INSERT INTO final_blocks ( \
