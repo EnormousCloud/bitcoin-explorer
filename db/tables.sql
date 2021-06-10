@@ -116,8 +116,7 @@ create table final_addr (
     addr         bytea,    -- address of the wallet
     blockheight  int,      -- block height
     txindex      int,      -- transaction index in this block
-    sent_btc     bigint,   -- total amount of BTC transferred in this transaction
-    fee_btc      bigint,   -- fee paid for this transaction (if that was a sender record)
+    sent_btc     bigint,   -- total amount of BTC transferred in this transaction. if negative, this is fee deduction
     primary key (addr, blockheight, txindex)
 );
 create index idx_final_addr_addr on final_addr (addr);

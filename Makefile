@@ -16,3 +16,8 @@ db-init:
 
 db-shell:
 	docker exec -it postgres psql -U postgres -d btcexplorer
+
+indexer:
+	cd indexer
+	cargo run --release
+	cd -

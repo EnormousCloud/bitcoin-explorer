@@ -38,7 +38,8 @@ pub async fn persist(
             "INSERT INTO final_tx ( \
                 txhash, txindex, blockhash, blockheight, sent_btc, fee_btc
             ) VALUES ($1, $2, $3, $4, $5, $6) 
-            ON CONFLICT (txhash) DO NOTHING")
+            ON CONFLICT (txhash) DO NOTHING",
+        )
         .bind(txb.clone())
         .bind(txindex)
         .bind(hashb.clone())
@@ -48,7 +49,21 @@ pub async fn persist(
         .execute(&mut tx)
         .await?;
 
-        // todo: insert record as accounts
+        for vout in t.vout.iter() {
+            let addr = hex::decode(&vout.script_pub_key.hex)?;
+            sqlx::query(
+                "INSERT INTO final_addr ( \
+                addr, blockheight, txindex, sent_btc
+            ) VALUES ($1, $2, $3, $4) 
+            ON CONFLICT (addr, blockheight, txindex) DO NOTHING",
+            )
+            .bind(addr.clone())
+            .bind(height)
+            .bind(txindex)
+            .bind(vout.value)
+            .execute(&mut tx)
+            .await?;
+        }
         txindex += 1
     }
 
