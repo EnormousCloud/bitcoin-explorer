@@ -17,10 +17,14 @@ async fn main() -> Result<(), anyhow::Error> {
         .await?;
     let mut conn: PoolConnection<Postgres> = pool.acquire().await.unwrap();
 
-    let max_height: u32 = block::max_final_height(&mut conn).await? as u32;
-    println!("recorded final height: {}", max_height);
+    let max_recorded_height: u32 = block::max_final_height(&mut conn).await? as u32;
+    println!("recorded final height: {}", max_recorded_height);
 
-    let mut height = max_height;
+    let mut height = if max_recorded_height > 1 {
+        max_recorded_height + 1
+    } else {
+        1
+    };
     loop {
         let hash = client.get_block_hash(height)?;
         println!("processing height {} hash {}", height, hash.as_str());

@@ -1253,6 +1253,7 @@ dependencies = [
  "chrono",
  "hex",
  "serde",
+ "serde_json",
  "sqlx",
  "structopt",
  "ureq",

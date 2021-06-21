@@ -4,12 +4,10 @@ use sqlx::pool::PoolConnection;
 use sqlx::Acquire;
 use sqlx::Postgres;
 
-pub async fn max_final_height(
-    conn: &mut PoolConnection<Postgres>,
-) -> Result<i32, anyhow::Error> {
-    let row: (i32,) = sqlx::query_as( "SELECT COALESCE(MAX(blockheight),0) FROM final_blocks")
-    .fetch_one(conn)
-    .await?;
+pub async fn max_final_height(conn: &mut PoolConnection<Postgres>) -> Result<i32, anyhow::Error> {
+    let row: (i32,) = sqlx::query_as("SELECT COALESCE(MAX(blockheight),0) FROM final_blocks")
+        .fetch_one(conn)
+        .await?;
     Ok(row.0)
 }
 
@@ -58,21 +56,21 @@ pub async fn persist(
         .execute(&mut tx)
         .await?;
 
-        for vout in t.vout.iter() {
-            let addr = hex::decode(&vout.script_pub_key.hex)?;
-            sqlx::query(
-                "INSERT INTO final_addr ( \
-                addr, blockheight, txindex, sent_btc
-            ) VALUES ($1, $2, $3, $4) 
-            ON CONFLICT (addr, blockheight, txindex) DO NOTHING",
-            )
-            .bind(addr.clone())
-            .bind(height)
-            .bind(txindex)
-            .bind(vout.value)
-            .execute(&mut tx)
-            .await?;
-        }
+        // for vout in t.vout.iter() {
+        //     let addr = hex::decode(&vout.script_pub_key.hex)?;
+        //     sqlx::query(
+        //         "INSERT INTO final_addr ( \
+        //         addr, blockheight, txindex, sent_btc
+        //     ) VALUES ($1, $2, $3, $4) 
+        //     ON CONFLICT (addr, blockheight, txindex) DO NOTHING",
+        //     )
+        //     .bind(addr)
+        //     .bind(height)
+        //     .bind(txindex)
+        //     .bind(vout.value)
+        //     .execute(&mut tx)
+        //     .await?;
+        // }
         txindex += 1
     }
 
@@ -101,13 +99,13 @@ pub async fn persist(
     .bind(block.stats.avgfeerate)
     .bind(block.stats.avgtxsize as i64)
     .bind(block.stats.ins)
-    .bind(block.stats.maxfee)
-    .bind(block.stats.maxfeerate)
+    .bind(block.stats.maxfee as i64)
+    .bind(block.stats.maxfeerate as i64)
     .bind(block.stats.maxtxsize)
     .bind(block.stats.medianfee)
     .bind(block.stats.mediantxsize)
-    .bind(block.stats.minfee)
-    .bind(block.stats.minfeerate)
+    .bind(block.stats.minfee as i64)
+    .bind(block.stats.minfeerate as i64)
     .bind(block.stats.mintxsize)
     .bind(block.stats.outs)
     .bind(block.stats.subsidy as i64)

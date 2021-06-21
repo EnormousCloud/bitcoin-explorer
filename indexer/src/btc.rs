@@ -118,14 +118,14 @@ pub struct BlockStatsInfo {
     pub feerate_percentiles: Vec<u32>,
     pub height: u32,
     pub ins: u32,
-    pub maxfee: u32,
-    pub maxfeerate: u32,
+    pub maxfee: u64,
+    pub maxfeerate: u64,
     pub maxtxsize: u32,
     pub medianfee: u32,
     pub mediantime: u64,
     pub mediantxsize: u32,
-    pub minfee: u32,
-    pub minfeerate: u32,
+    pub minfee: u64,
+    pub minfeerate: u64,
     pub mintxsize: u32,
     pub outs: u32,
     pub subsidy: u64,
@@ -149,9 +149,8 @@ struct BlockStatsResponse {
 
 #[derive(Clone, Debug, Deserialize)]
 struct StringResultResponse {
-    result: String
+    result: String,
 }
-
 
 #[derive(Clone, Debug, Deserialize)]
 struct BlockInfoResponse {
@@ -189,7 +188,7 @@ impl BlockchainClient for Client {
             "{{\"jsonrpc\":\"1.0\",\"id\":\"h{}\",\"method\":\"getblockhash\",\"params\":[{}]}}",
             height, height,
         );
-        println!("{}", payload);
+        // println!("{}", payload);
         let result: StringResultResponse = agent
             .post(self.address.as_str())
             .set("Authorization", auth_hdr.as_str())
@@ -210,12 +209,21 @@ impl BlockchainClient for Client {
             "{{\"jsonrpc\":\"1.0\",\"id\":\"{}\",\"method\":\"getblockstats\",\"params\":[\"{}\"]}}",
             hash, hash,
         );
-        let stats: BlockStatsResponse = agent
+
+        let stats_str: String = agent
             .post(self.address.as_str())
             .set("Authorization", auth_hdr.as_str())
             .set("Content-Type", "application/json")
             .send_string(payload1.as_str())?
-            .into_json()?;
+            .into_string()?;
+        let stats: BlockStatsResponse = match serde_json::from_str(stats_str.as_str()) {
+            Ok(x) => x,
+            Err(e) => {
+                println!("REQUEST >> {}", payload1);
+                println!("RESPONSE {}", stats_str);
+                return Err(anyhow::Error::from(e));
+            },
+        };
 
         let payload = format!(
             "{{\"jsonrpc\":\"1.0\",\"id\":\"{}\",\"method\":\"getblock\",\"params\":[\"{}\",2]}}",

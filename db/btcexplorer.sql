@@ -110,29 +110,29 @@ create unlogged table tx (
 );
 
 -- `final_addr` are transactions groupped by address
-drop table if exists final_addr;
-create table final_addr (
-    addr         bytea,    -- address of the wallet
-    blockheight  int,      -- block height
-    txindex      int,      -- transaction index in this block
-    sent_btc     bigint,   -- total amount of BTC transferred in this transaction. if negative, this is fee deduction
-    primary key (addr, blockheight, txindex)
-);
-create index idx_final_addr_addr on final_addr (addr);
-create index idx_final_addr_blockheight on final_addr (blockheight, txindex);
+-- drop table if exists final_addr;
+-- create table final_addr (
+--     addr         text,    -- address of the wallet
+--     blockheight  int,      -- block height
+--     txindex      int,      -- transaction index in this block
+--     sent_btc     bigint,   -- total amount of BTC transferred in this transaction. if negative, this is fee deduction
+--     primary key (addr, blockheight, txindex)
+-- );
+-- create index idx_final_addr_addr on final_addr (addr);
+-- create index idx_final_addr_blockheight on final_addr (blockheight, txindex);
 
 -- `addr` are address transaction history
-drop table if exists unconfirmed_addr;
-create unlogged table unconfirmed_addr (
-    addr         bytea,    -- address of the wallet
-    txhash       bytea,    -- transaction hash
-    blockhash    bytea,    -- block hash
-    blockheight  int,      -- block height
-    txindex      int,      -- transaction index in this block
-    sent_btc     bigint,   -- total amount of BTC transferred in this transaction
-    fee_btc      bigint,   -- fee paid for this transaction (if that was a sender record)
-    primary key (addr, txhash, txindex)
-);
-create index idx_addr_addr on unconfirmed_addr (addr);
-create index idx_addr_blockhash on unconfirmed_addr (blockhash, txindex);
-create index idx_addr_txhash on unconfirmed_addr (txhash);
+-- drop table if exists unconfirmed_addr;
+-- create unlogged table unconfirmed_addr (
+--     addr         text,    -- address of the wallet
+--     txhash       bytea,    -- transaction hash
+--     blockhash    bytea,    -- block hash
+--     blockheight  int,      -- block height
+--     txindex      int,      -- transaction index in this block
+--     sent_btc     bigint,   -- total amount of BTC transferred in this transaction
+--     fee_btc      bigint,   -- fee paid for this transaction (if that was a sender record)
+--     primary key (addr, txhash, txindex)
+-- );
+-- create index idx_addr_addr on unconfirmed_addr (addr);
+-- create index idx_addr_blockhash on unconfirmed_addr (blockhash, txindex);
+-- create index idx_addr_txhash on unconfirmed_addr (txhash);
