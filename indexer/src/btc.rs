@@ -222,7 +222,7 @@ impl BlockchainClient for Client {
                 println!("REQUEST >> {}", payload1);
                 println!("RESPONSE {}", stats_str);
                 return Err(anyhow::Error::from(e));
-            },
+            }
         };
 
         let payload = format!(

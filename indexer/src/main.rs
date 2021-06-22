@@ -26,10 +26,18 @@ async fn main() -> Result<(), anyhow::Error> {
         1
     };
     loop {
+        let start = std::time::Instant::now();
         let hash = client.get_block_hash(height)?;
-        println!("processing height {} hash {}", height, hash.as_str());
         let block = client.get_block(hash.as_str())?;
-        block::persist(&mut conn, &block).await?;
+        println!(
+            "height {} hash {}, read took {:?}",
+            height,
+            hash.as_str(),
+            start.elapsed()
+        );
+
+        let with_index = false;
+        block::persist(&mut conn, &block, with_index).await?;
         height = height + 1;
         if height > info.blocks {
             break;
