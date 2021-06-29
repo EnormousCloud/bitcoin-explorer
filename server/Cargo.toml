@@ -1,15 +1,24 @@
 [package]
-name = "server"
+name = "bitcoin-explorer"
 version = "0.1.0"
-authors = ["EnormousCloud <enormous@webcerebrium.com>"]
+authors = ["EnormousCloud"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sqlx = { version = "0.4.1", features = [ "postgres", "runtime-async-std-rustls" ] }
+anyhow = { version = "1.0" }
 async-std = { version = "1.6", features = [ "attributes" ] }
-structopt = { version = "0.3", default-features = false }
-tide = "0.16.0"
-serde = { version = "1.0", features = ["derive"] }
+async-trait = { version = "0.1" }
+cached = { version = "0.23" }
+num-format = { version = "0.4" }
 sauron = { git = "https://github.com/ivanceras/sauron", branch = "master" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0" }
+sqlx = { version = "0.4", features = [ "postgres", "runtime-async-std-rustls" ] }
+structopt = { version = "0.3", default-features = false }
+tide = { version = "0.16", default-features = false, features = ["h1-server"] }
+tracing = { version = "0.1" }
+tracing-futures =  { version = "0.2" }
+tracing-subscriber = { version = "0.2" }
+ureq = { version = "2.1", features = ["json", "charset"] }
