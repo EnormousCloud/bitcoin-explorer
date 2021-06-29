@@ -1,4 +1,32 @@
+use clap::arg_enum;
 use structopt::StructOpt;
+
+arg_enum! {
+    #[derive(Debug, Clone)]
+    pub enum BlocksSource {
+        RPC,
+        DB,
+    }
+}
+
+arg_enum! {
+    #[derive(Debug, Clone)]
+    pub enum TxSource {
+        NONE,
+        RPC,
+        DB,
+    }
+}
+
+arg_enum! {
+    #[derive(Debug, Clone)]
+    pub enum AddrSource {
+        NONE,
+        BLOCKCHAINCOM,
+        BLOCKCHAIR,
+        BLOCKCIPHER,
+    }
+}
 
 #[derive(Debug, StructOpt, Clone)]
 #[structopt(name = "bitcoin-explorer", about = "Bitcoin Explorer")]
@@ -19,15 +47,15 @@ pub struct Args {
     /// Static folder to serve web client files
     #[structopt(long, default_value = "./dist", env = "STATIC_DIR")]
     pub static_dir: String,
-    /// Source of address data: NONE, DB
-    #[structopt(long, default_value = "NONE", env = "SOURCE_ADDR")]
-    pub addr: String,
-    /// Source of transaction data: NONE, DB, RPC
-    #[structopt(long, default_value = "RPC", env = "SOURCE_TX")]
-    pub tx: String,
-    /// Source of blocks data: NONE, DB, RPC
-    #[structopt(long, default_value = "RPC", env = "SOURCE_BLOCKS")]
-    pub blocks: String,
+    /// Source of address data
+    #[structopt(long, default_value = "NONE", possible_values = &AddrSource::variants(), env = "SOURCE_ADDR")]
+    pub addr: AddrSource,
+    /// Source of transaction data
+    #[structopt(long, default_value = "RPC", possible_values = &TxSource::variants(), case_insensitive = true,  env = "SOURCE_TX")]
+    pub tx: TxSource,
+    /// Source of blocks data
+    #[structopt(long, default_value = "RPC", possible_values = &BlocksSource::variants(), case_insensitive = true, env = "SOURCE_BLOCKS")]
+    pub blocks: BlocksSource,
     /// Bitcoin RPC address
     #[structopt(long, default_value = "localhost:8332", env = "RPC_ADDR")]
     pub rpc_addr: String,
