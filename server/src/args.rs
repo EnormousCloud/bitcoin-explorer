@@ -57,7 +57,7 @@ pub struct Args {
     #[structopt(long, default_value = "RPC", possible_values = &BlocksSource::variants(), case_insensitive = true, env = "SOURCE_BLOCKS")]
     pub blocks: BlocksSource,
     /// Bitcoin RPC address
-    #[structopt(long, default_value = "localhost:8332", env = "RPC_ADDR")]
+    #[structopt(long, default_value = "http://localhost:8332/", env = "RPC_ADDR")]
     pub rpc_addr: String,
     /// Bitcoin RPC user name
     #[structopt(long, default_value = "btcuser", env = "RPC_USERNAME")]
