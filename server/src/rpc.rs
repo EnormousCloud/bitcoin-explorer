@@ -79,32 +79,26 @@ pub fn get_latest_blocks(rpcclient: Client, pg: pager::Input) -> AggregatedBlock
             let hash = match bitcoin::BlockHash::from_hex(block_hash_str) {
                 Ok(x) => x,
                 Err(e) => {
-                    return AggregatedBlockListResponse::Failure(format!(
-                        "invalid from param {}",
-                        e
-                    ))
+                    let fe = format!("invalid from param {}", e);
+                    return AggregatedBlockListResponse::Failure(fe);
                 }
             };
             let block = match client.get_block_info(&hash) {
                 Ok(x) => x,
                 Err(e) => {
-                    return AggregatedBlockListResponse::Failure(format!(
-                        "from param parsing error {}",
-                        e
-                    ))
+                    let fe = format!("from param parsing error {}", e);
+                    return AggregatedBlockListResponse::Failure(fe);
                 }
             };
             block.previousblockhash
         }
         None => {
-            // take best block height
+            // take the best block height
             let chaininfo = match client.get_blockchain_info() {
                 Ok(x) => x,
                 Err(e) => {
-                    return AggregatedBlockListResponse::Failure(format!(
-                        "cannot get chain state {}",
-                        e
-                    ))
+                    let fe = format!("cannot get chain state {}", e);
+                    return AggregatedBlockListResponse::Failure(fe);
                 }
             };
             Some(chaininfo.best_block_hash)
@@ -115,27 +109,21 @@ pub fn get_latest_blocks(rpcclient: Client, pg: pager::Input) -> AggregatedBlock
         None => return AggregatedBlockListResponse::Failure("invalid block offset".to_string()),
     };
     let mut i = pg.limit;
-    let mut out = BlocksList {
-        list: vec![],
-        pager: None,
-    };
+    let mut out = BlocksList::default();
     while i > 0 {
-        let block = match client.get_block_info(&ihash) {
+        let header = match client.get_block_header_info(&ihash) {
             Ok(x) => x,
             Err(e) => {
-                return AggregatedBlockListResponse::Failure(format!(
-                    "error of getting block {}",
-                    e
-                ))
+                let fe = format!("error of getting block {}", e);
+                return AggregatedBlockListResponse::Failure(fe);
             }
         };
-        let stats = get_block_stats(rpcclient.clone(), ihash);
         out.list.push(Block {
-            block: block.clone(),
-            stats,
+            header: header.clone(),
+            stats: get_block_stats(rpcclient.clone(), ihash),
         });
         i = i - 1;
-        match &block.previousblockhash {
+        match &header.previous_block_hash {
             Some(prevhash) => {
                 ihash = prevhash.clone();
                 if i == 0 {
@@ -147,9 +135,6 @@ pub fn get_latest_blocks(rpcclient: Client, pg: pager::Input) -> AggregatedBlock
             None => i = 0,
         }
     }
-
-    // let out = rpcclient.core_client().get_blockchain_info().unwrap();
-    // tracing::info!("get_blockchain_info: {:?}", out);
     AggregatedBlockListResponse::Blocks(out)
 }
 

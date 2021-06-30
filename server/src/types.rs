@@ -63,7 +63,7 @@ pub enum AggregatedBlockResponse {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Block {
-    pub block: json::GetBlockResult,
+    pub header: json::GetBlockHeaderResult,
     pub stats: BlockStatsInfo,
 }
 
@@ -71,6 +71,14 @@ pub struct Block {
 pub struct BlocksList {
     pub list: Vec<Block>,
     pub pager: Option<pager::Output>,
+}
+impl std::default::Default for BlocksList {
+    fn default() -> Self {
+        Self {
+            list: vec![],
+            pager: None,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -83,7 +91,7 @@ pub enum AggregatedBlockListResponse {
 impl AggregatedBlockListResponse {
     pub fn is_invalid(&self) -> bool {
         if let Self::Failure(_) = self {
-            return true
+            return true;
         }
         false
     }
