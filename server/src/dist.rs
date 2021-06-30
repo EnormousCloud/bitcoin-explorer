@@ -20,7 +20,7 @@ impl tide::Middleware<State> for Middleware {
         let path = req.url().path().to_owned();
         let method = req.method().to_string();
 
-        if method == "GET" && path != "/" {
+        if method == "GET" && path != "/" && !path.starts_with("/api/") {
             let dir = PathBuf::from(req.state().static_dir.clone());
             let path = path.trim_start_matches('/');
             let mut file_path = dir.clone();

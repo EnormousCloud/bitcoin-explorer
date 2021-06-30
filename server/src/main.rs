@@ -5,9 +5,6 @@ pub mod rpc;
 pub mod telemetry;
 pub mod types;
 
-// pub extern crate bitcoincore_rpc;
-// pub extern crate bitcoincore_rpc_json;
-
 #[derive(Clone)]
 pub struct State {
     pub pool: sqlx::Pool<sqlx::postgres::Postgres>,
@@ -46,8 +43,15 @@ async fn main() -> tide::Result<()> {
 
     let mut app = tide::with_state(State::from_args(&args).await);
     app.with(telemetry::TraceMiddleware::new());
+    app.at("/api/address/:address").get(api::address);
+    app.at("/api/tx/:tx").get(api::transaction);
+    app.at("/api/blocks/:block").get(api::block);
+    app.at("/api/blocks").get(api::blocks);
+    app.at("/api/search").post(api::search);
+    // app.at("/api/chainstate").post(api::chainstate);
     app.with(dist::Middleware {});
     app.at("/").get(api::home);
+    // app.at("/").get(api::home);
     app.listen(args.listen.as_str()).await?;
     Ok(())
 }

@@ -3,6 +3,7 @@ use bitcoincore_rpc::RpcApi;
 use bitcoincore_rpc_json as json;
 use cached::proc_macro::cached;
 use json::bitcoin;
+use serde::Serialize;
 use std::hash::{Hash, Hasher};
 use std::time::Duration;
 use ureq::{Agent, AgentBuilder};
@@ -15,10 +16,7 @@ pub struct Client {
 impl Client {
     pub fn new(rpc_addr: &str, rpc_username: &str, rpc_password: &str) -> Self {
         let rpc_auth = if rpc_username.len() > 0 {
-            bitcoincore_rpc::Auth::UserPass(
-                rpc_username.to_string(),
-                rpc_password.to_string(),
-            )
+            bitcoincore_rpc::Auth::UserPass(rpc_username.to_string(), rpc_password.to_string())
         } else {
             bitcoincore_rpc::Auth::None
         };
@@ -75,6 +73,30 @@ pub fn get_block_info(rpcclient: Client, hash: bitcoin::BlockHash) -> json::GetB
     let out = rpcclient.core_client().get_block_info(&hash).unwrap();
     tracing::info!("get_block_info: {:?}", out);
     out
+}
+
+/// wrapper of the esponse that can be cached
+#[derive(Clone, Debug, Serialize)]
+pub enum RawTransactionResponse {
+    #[serde(rename="error")]
+    Failure(String),
+    #[serde(rename="tx")]
+    Tx(json::GetRawTransactionResult),
+}
+
+#[cached(time = 60)]
+pub fn get_raw_transaction_info(
+    rpcclient: Client,
+    hash: bitcoin::Txid,
+) -> RawTransactionResponse {
+    let out = rpcclient
+        .core_client()
+        .get_raw_transaction_info(&hash, None);
+    tracing::info!("get_raw_transaction_info: {:?}", out);
+    match out {
+        Ok(res) => RawTransactionResponse::Tx(res),
+        Err(e) => RawTransactionResponse::Failure(e.to_string()),
+    }
 }
 
 /// this method is not in the library yet

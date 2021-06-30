@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PagingInput {
-    // token to start 
+    // token to start
     pub from: Option<String>,
     // limit of records
     pub limit: u32,
@@ -10,7 +10,10 @@ pub struct PagingInput {
 
 impl Default for PagingInput {
     fn default() -> Self {
-        Self{ from: None, limit: 20 }
+        Self {
+            from: None,
+            limit: 20,
+        }
     }
 }
 
