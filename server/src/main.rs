@@ -1,27 +1,22 @@
 pub mod api;
 pub mod args;
-// pub mod db;
 pub mod dist;
+pub mod rpc;
 pub mod telemetry;
+pub mod types;
 
-pub extern crate bitcoincore_rpc;
-pub extern crate bitcoincore_rpc_json;
+// pub extern crate bitcoincore_rpc;
+// pub extern crate bitcoincore_rpc_json;
 
 #[derive(Clone)]
 pub struct State {
     pub pool: sqlx::Pool<sqlx::postgres::Postgres>,
     pub static_dir: String,
-    pub rpc_addr: String,
-    pub rpc_auth: bitcoincore_rpc::Auth,
+    pub rpc_client: rpc::Client,
 }
 
 impl State {
     pub async fn from_args(src: &args::Args) -> State {
-        let rpc_auth = if src.rpc_username.len() > 0 {
-            bitcoincore_rpc::Auth::UserPass(src.rpc_username.clone(), src.rpc_password.clone())
-        } else {
-            bitcoincore_rpc::Auth::None
-        };
         let pool = sqlx::postgres::PgPoolOptions::new()
             .max_connections(src.database_conn)
             .connect_timeout(std::time::Duration::from_secs(3))
@@ -34,8 +29,7 @@ impl State {
         Self {
             pool,
             static_dir: src.static_dir.clone(),
-            rpc_addr: src.rpc_addr.clone(),
-            rpc_auth,
+            rpc_client: rpc::Client::new(&src.rpc_addr, &src.rpc_username, &src.rpc_password),
         }
     }
 }
