@@ -12,23 +12,16 @@ use json::bitcoin;
 pub async fn home(req: Request<State>) -> Result {
     let rpcclient = req.state().rpc_client.clone();
     let chaininfo = rpc::get_blockchain_info(rpcclient.clone());
-    let block = rpc::get_block_info(rpcclient.clone(), chaininfo.best_block_hash);
-    let _ = rpc::get_block_stats(rpcclient.clone(), chaininfo.best_block_hash);
-
     let mut m: BTreeMap<&str, String> = BTreeMap::new();
     m.insert("app", "bitcoin-explorer".to_owned());
     m.insert("blocks", format!("{}", chaininfo.blocks));
     m.insert("difficulty", format!("{}", chaininfo.difficulty));
-    if let Some(previousblockhash) = block.previousblockhash {
-        m.insert("previous_block", format!("{:?}", previousblockhash));
-    }
-
     let mut res = Response::new(200);
     res.set_body(Body::from_json(&m)?);
     Ok(res)
 }
 
-fn error_response(str: String) -> tide::Result {
+fn invalid_param(str: String) -> tide::Result {
     let mut m: BTreeMap<&'static str, String> = BTreeMap::new();
     m.insert("error", str.clone());
     let mut res = Response::new(400);
@@ -39,11 +32,11 @@ fn error_response(str: String) -> tide::Result {
 pub async fn transaction(req: Request<State>) -> Result {
     let tx_id = match req.param("tx") {
         Ok(x) => x,
-        Err(e) => return error_response(format!("missing tx param {}", e)),
+        Err(e) => return invalid_param(format!("missing tx param {}", e)),
     };
     let tx = match bitcoin::Txid::from_hex(tx_id) {
         Ok(x) => x,
-        Err(e) => return error_response(format!("tx param parsing error {}", e)),
+        Err(e) => return invalid_param(format!("tx param parsing error {}", e)),
     };
     let rpcclient = req.state().rpc_client.clone();
     let rpcresult = rpc::get_raw_transaction_info(rpcclient.clone(), tx);
@@ -53,31 +46,37 @@ pub async fn transaction(req: Request<State>) -> Result {
 }
 
 pub async fn block(req: Request<State>) -> Result {
-    let _rpcclient = req.state().rpc_client.clone();
-    // let chaininfo = rpc::get(rpcclient.clone());
-    let mut m: BTreeMap<&str, String> = BTreeMap::new();
-    m.insert("endpoint", "block".to_owned());
+    let block_hash = match req.param("block") {
+        Ok(x) => x,
+        Err(e) => return invalid_param(format!("missing block param {}", e)),
+    };
+    let block = match bitcoin::BlockHash::from_hex(block_hash) {
+        Ok(x) => x,
+        Err(e) => return invalid_param(format!("tx param parsing error {}", e)),
+    };
+    // let pg = crate::pager::Input::from_request(req);
+    // TODO: transaction paging
+    let rpcclient = req.state().rpc_client.clone();
+    let rpcresult = rpc::get_block_info(rpcclient.clone(), block);
     let mut res = Response::new(200);
-    res.set_body(Body::from_json(&m)?);
+    res.set_body(Body::from_json(&rpcresult)?);
     Ok(res)
 }
 
+pub async fn blocks(req: Request<State>) -> Result {
+    let rpcclient = req.state().rpc_client.clone();
+    let pg = crate::pager::Input::from_request(req);
+    let rpcresult = rpc::get_latest_blocks(rpcclient.clone(), pg);
+    let mut res = Response::new(if rpcresult.is_invalid() { 400 } else { 200 });
+    res.set_body(Body::from_json(&rpcresult)?);
+    Ok(res)
+}
 
 pub async fn address(req: Request<State>) -> Result {
     let _rpcclient = req.state().rpc_client.clone();
     // let chaininfo = rpc::get(rpcclient.clone());
     let mut m: BTreeMap<&str, String> = BTreeMap::new();
     m.insert("endpoint", "address".to_owned());
-    let mut res = Response::new(200);
-    res.set_body(Body::from_json(&m)?);
-    Ok(res)
-}
-
-pub async fn blocks(req: Request<State>) -> Result {
-    let _rpcclient = req.state().rpc_client.clone();
-    // let chaininfo = rpc::get(rpcclient.clone());
-    let mut m: BTreeMap<&str, String> = BTreeMap::new();
-    m.insert("endpoint", "blocks".to_owned());
     let mut res = Response::new(200);
     res.set_body(Body::from_json(&m)?);
     Ok(res)

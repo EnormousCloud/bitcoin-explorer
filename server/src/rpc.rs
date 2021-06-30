@@ -1,9 +1,11 @@
-use crate::types::{BlockStatsInfo, BlockStatsResponse};
+use crate::pager;
+use crate::types::{AggregatedBlockListResponse, AggregatedBlockResponse, AggregatedTxResponse};
+use crate::types::{Block, BlockStatsInfo, BlockStatsResponse, BlocksList};
+use bitcoin::hashes::hex::FromHex;
 use bitcoincore_rpc::RpcApi;
 use bitcoincore_rpc_json as json;
 use cached::proc_macro::cached;
 use json::bitcoin;
-use serde::Serialize;
 use std::hash::{Hash, Hasher};
 use std::time::Duration;
 use ureq::{Agent, AgentBuilder};
@@ -69,38 +71,116 @@ pub fn get_blockchain_info(rpcclient: Client) -> json::GetBlockchainInfoResult {
 }
 
 #[cached(time = 60)]
-pub fn get_block_info(rpcclient: Client, hash: bitcoin::BlockHash) -> json::GetBlockResult {
-    let out = rpcclient.core_client().get_block_info(&hash).unwrap();
-    tracing::info!("get_block_info: {:?}", out);
-    out
-}
+pub fn get_latest_blocks(rpcclient: Client, pg: pager::Input) -> AggregatedBlockListResponse {
+    let client = rpcclient.clone().core_client();
+    let best_height_hash = match &pg.from {
+        Some(block_hash_str) => {
+            // take previous block, starting from "from" hash
+            let hash = match bitcoin::BlockHash::from_hex(block_hash_str) {
+                Ok(x) => x,
+                Err(e) => {
+                    return AggregatedBlockListResponse::Failure(format!(
+                        "invalid from param {}",
+                        e
+                    ))
+                }
+            };
+            let block = match client.get_block_info(&hash) {
+                Ok(x) => x,
+                Err(e) => {
+                    return AggregatedBlockListResponse::Failure(format!(
+                        "from param parsing error {}",
+                        e
+                    ))
+                }
+            };
+            block.previousblockhash
+        }
+        None => {
+            // take best block height
+            let chaininfo = match client.get_blockchain_info() {
+                Ok(x) => x,
+                Err(e) => {
+                    return AggregatedBlockListResponse::Failure(format!(
+                        "cannot get chain state {}",
+                        e
+                    ))
+                }
+            };
+            Some(chaininfo.best_block_hash)
+        }
+    };
+    let mut ihash = match best_height_hash {
+        Some(x) => x,
+        None => return AggregatedBlockListResponse::Failure("invalid block offset".to_string()),
+    };
+    let mut i = pg.limit;
+    let mut out = BlocksList {
+        list: vec![],
+        pager: None,
+    };
+    while i > 0 {
+        let block = match client.get_block_info(&ihash) {
+            Ok(x) => x,
+            Err(e) => {
+                return AggregatedBlockListResponse::Failure(format!(
+                    "error of getting block {}",
+                    e
+                ))
+            }
+        };
+        let stats = get_block_stats(rpcclient.clone(), ihash);
+        out.list.push(Block {
+            block: block.clone(),
+            stats,
+        });
+        i = i - 1;
+        match &block.previousblockhash {
+            Some(prevhash) => {
+                ihash = prevhash.clone();
+                if i == 0 {
+                    out.pager = Some(pager::Output {
+                        from: Some(ihash.clone().to_string()),
+                    })
+                }
+            }
+            None => i = 0,
+        }
+    }
 
-/// wrapper of the esponse that can be cached
-#[derive(Clone, Debug, Serialize)]
-pub enum RawTransactionResponse {
-    #[serde(rename="error")]
-    Failure(String),
-    #[serde(rename="tx")]
-    Tx(json::GetRawTransactionResult),
+    // let out = rpcclient.core_client().get_blockchain_info().unwrap();
+    // tracing::info!("get_blockchain_info: {:?}", out);
+    AggregatedBlockListResponse::Blocks(out)
 }
 
 #[cached(time = 60)]
-pub fn get_raw_transaction_info(
-    rpcclient: Client,
-    hash: bitcoin::Txid,
-) -> RawTransactionResponse {
+pub fn get_block_info(rpcclient: Client, hash: bitcoin::BlockHash) -> AggregatedBlockResponse {
+    let out = rpcclient.core_client().get_block_info(&hash);
+    tracing::info!("get_block_info: {:?}", out);
+    match out {
+        Ok(block) => {
+            let stats = get_block_stats(rpcclient, hash);
+            tracing::info!("get_block_stats: {:?}", stats);
+            AggregatedBlockResponse::Block { block, stats }
+        }
+        Err(e) => AggregatedBlockResponse::Failure(e.to_string()),
+    }
+}
+
+#[cached(time = 60)]
+pub fn get_raw_transaction_info(rpcclient: Client, hash: bitcoin::Txid) -> AggregatedTxResponse {
     let out = rpcclient
         .core_client()
         .get_raw_transaction_info(&hash, None);
     tracing::info!("get_raw_transaction_info: {:?}", out);
     match out {
-        Ok(res) => RawTransactionResponse::Tx(res),
-        Err(e) => RawTransactionResponse::Failure(e.to_string()),
+        Ok(res) => AggregatedTxResponse::Tx(res),
+        Err(e) => AggregatedTxResponse::Failure(e.to_string()),
     }
 }
 
 /// this method is not in the library yet
-#[cached(time = 60)]
+#[cached(time = 600)]
 pub fn get_block_stats(rpcclient: Client, hash: bitcoin::BlockHash) -> BlockStatsInfo {
     let payload = format!(
         "{{\"jsonrpc\":\"1.0\",\"id\":\"{}\",\"method\":\"getblockstats\",\"params\":[\"{}\"]}}",
@@ -121,6 +201,5 @@ pub fn get_block_stats(rpcclient: Client, hash: bitcoin::BlockHash) -> BlockStat
             BlockStatsResponse::default()
         }
     };
-    tracing::info!("get_block_stats: {:?}", response.result);
     response.result
 }

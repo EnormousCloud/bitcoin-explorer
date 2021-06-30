@@ -1,27 +1,7 @@
+use crate::pager;
+use bitcoincore_rpc_json as json;
+// use json::bitcoin;
 use serde::{Deserialize, Serialize};
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct PagingInput {
-    // token to start
-    pub from: Option<String>,
-    // limit of records
-    pub limit: u32,
-}
-
-impl Default for PagingInput {
-    fn default() -> Self {
-        Self {
-            from: None,
-            limit: 20,
-        }
-    }
-}
-
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
-pub struct PagingOutput {
-    // token to start the next page
-    pub from: Option<String>,
-}
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct BlockStatsInfo {
@@ -56,7 +36,55 @@ pub struct BlockStatsInfo {
     pub utxo_size_inc: i32,
 }
 
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct BlockStatsResponse {
     pub result: BlockStatsInfo,
+}
+
+/// wrapper of the esponse that can be cached
+#[derive(Clone, Debug, Serialize)]
+pub enum AggregatedTxResponse {
+    #[serde(rename = "error")]
+    Failure(String),
+    #[serde(rename = "tx")]
+    Tx(json::GetRawTransactionResult),
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub enum AggregatedBlockResponse {
+    #[serde(rename = "error")]
+    Failure(String),
+    #[serde(rename = "block")]
+    Block {
+        block: json::GetBlockResult,
+        stats: BlockStatsInfo,
+    },
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct Block {
+    pub block: json::GetBlockResult,
+    pub stats: BlockStatsInfo,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct BlocksList {
+    pub list: Vec<Block>,
+    pub pager: Option<pager::Output>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub enum AggregatedBlockListResponse {
+    #[serde(rename = "error")]
+    Failure(String),
+    #[serde(rename = "blocks")]
+    Blocks(BlocksList),
+}
+impl AggregatedBlockListResponse {
+    pub fn is_invalid(&self) -> bool {
+        if let Self::Failure(_) = self {
+            return true
+        }
+        false
+    }
 }

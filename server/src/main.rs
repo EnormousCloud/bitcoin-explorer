@@ -1,6 +1,7 @@
 pub mod api;
 pub mod args;
 pub mod dist;
+pub mod pager;
 pub mod rpc;
 pub mod telemetry;
 pub mod types;
