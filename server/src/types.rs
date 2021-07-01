@@ -41,26 +41,6 @@ pub struct BlockStatsResponse {
     pub result: BlockStatsInfo,
 }
 
-/// wrapper of the esponse that can be cached
-#[derive(Clone, Debug, Serialize)]
-pub enum AggregatedTxResponse {
-    #[serde(rename = "error")]
-    Failure(String),
-    #[serde(rename = "tx")]
-    Tx(json::GetRawTransactionResult),
-}
-
-#[derive(Clone, Debug, Serialize)]
-pub enum AggregatedBlockResponse {
-    #[serde(rename = "error")]
-    Failure(String),
-    #[serde(rename = "block")]
-    Block {
-        block: json::GetBlockResult,
-        stats: BlockStatsInfo,
-    },
-}
-
 #[derive(Clone, Debug, Serialize)]
 pub struct Block {
     pub header: json::GetBlockHeaderResult,
@@ -81,18 +61,93 @@ impl std::default::Default for BlocksList {
     }
 }
 
+
 #[derive(Clone, Debug, Serialize)]
-pub enum AggregatedBlockListResponse {
-    #[serde(rename = "error")]
-    Failure(String),
-    #[serde(rename = "blocks")]
-    Blocks(BlocksList),
+pub struct TxList {
+    pub list: Vec<json::GetRawTransactionResult>,
+    pub pager: Option<pager::Output>,
 }
-impl AggregatedBlockListResponse {
-    pub fn is_invalid(&self) -> bool {
-        if let Self::Failure(_) = self {
-            return true;
+
+impl std::default::Default for TxList {
+    fn default() -> Self {
+        Self {
+            list: vec![],
+            pager: None,
         }
-        false
     }
+}
+
+pub mod response {
+    use super::*;
+    use serde::Serialize;
+
+    #[derive(Clone, Debug, Serialize)]
+    pub enum Address {
+        #[serde(rename = "error")]
+        Failure(String),
+        #[serde(rename = "list")]
+        Tx(super::TxList),
+    }
+    impl Address {
+        pub fn is_invalid(&self) -> bool {
+            if let Self::Failure(_) = self {
+                return true;
+            }
+            false
+        }
+    }
+
+    #[derive(Clone, Debug, Serialize)]
+    pub enum BlockList {
+        #[serde(rename = "error")]
+        Failure(String),
+        #[serde(rename = "blocks")]
+        Blocks(super::BlocksList),
+    }
+    impl BlockList {
+        pub fn is_invalid(&self) -> bool {
+            if let Self::Failure(_) = self {
+                return true;
+            }
+            false
+        }
+    }
+
+    /// wrapper of the esponse that can be cached
+    #[derive(Clone, Debug, Serialize)]
+    pub enum Tx {
+        #[serde(rename = "error")]
+        Failure(String),
+        #[serde(rename = "tx")]
+        Tx(json::GetRawTransactionResult),
+    }
+    impl Tx {
+        pub fn is_invalid(&self) -> bool {
+            if let Self::Failure(_) = self {
+                return true;
+            }
+            false
+        }
+    }
+
+    #[derive(Clone, Debug, Serialize)]
+    pub enum Block {
+        #[serde(rename = "error")]
+        Failure(String),
+        #[serde(rename = "block")]
+        Block {
+            block: json::GetBlockResult,
+            stats: super::BlockStatsInfo,
+        },
+    }
+
+    impl Block {
+        pub fn is_invalid(&self) -> bool {
+            if let Self::Failure(_) = self {
+                return true;
+            }
+            false
+        }
+    }
+
 }
